@@ -27,8 +27,6 @@ class KMeansBase:
         iterations = 0
         while not stabilized:
             iterations += 1
-            if iterations%1000 == 0:
-                print ('Iteration: ', iterations)
             # find the Euclidean distance between a center and a data point
             # centroids array shape = k x m
             # data array shape = n x m
@@ -80,7 +78,8 @@ class KMeansBase:
 
 if __name__ == '__main__':
     k = 3
-    data = np.random.randn(100,2)
+    #data = np.random.randn(100,2)
+    data = np.array([[1.1,2],[1,2],[0.9,1.9],[1,2.1],[4,4],[4,4.1],[4.2,4.3],[4.3,4],[9,9],[8.9,9],[8.7,9.2],[9.1,9]])
     kmeans = KMeansBase(data, k)
     _, _, centroids, min_location = kmeans.cluster()
     # plotting code
