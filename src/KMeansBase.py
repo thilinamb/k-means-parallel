@@ -1,4 +1,6 @@
 import numpy as np
+import timeit
+import warnings
 
 class KMeansBase:
     def __init__(self, data, k):
@@ -16,50 +18,59 @@ class KMeansBase:
         return self.data[centroid_indexes, :]
 
     def _lloyds_iterations(self):
+        #warnings.simplefilter("error")
         centroids = self._initial_centroids()
-        print('Initial Centroids:', centroids)
+        #print('Initial Centroids:', centroids)
 
         stabilized = False
 
         j_values = []
         iterations = 0
-        while not stabilized:
-            iterations += 1
-            # find the Euclidean distance between a center and a data point
-            # centroids array shape = k x m
-            # data array shape = n x m
-            # In order to broadcast it, we have to introduce a third dimension into data
-            # data array becomes n x 1 x m
-            # now as a result of broadcasting, both array sizes will be n x k x m
-            data_ex = self.data[:, np.newaxis, :]
-            euclidean_dist = (data_ex - centroids) ** 2
-            # now take the summation of all distances along the 3rd axis(length of the dimension is m).
-            # This will be the total distance from each centroid for each data point.
-            # resulting vector will be of size n x k
-            distance_arr = np.sum(euclidean_dist, axis=2)
+        while (not stabilized) and (iterations < 1000):
+            print ('iteration counter: ', iterations)
+            try:
+                # find the Euclidean distance between a center and a data point
+                # centroids array shape = k x m
+                # data array shape = n x m
+                # In order to broadcast it, we have to introduce a third dimension into data
+                # data array becomes n x 1 x m
+                # now as a result of broadcasting, both array sizes will be n x k x m
+                data_ex = self.data[:, np.newaxis, :]
+                euclidean_dist = (data_ex - centroids) ** 2
+                # now take the summation of all distances along the 3rd axis(length of the dimension is m).
+                # This will be the total distance from each centroid for each data point.
+                # resulting vector will be of size n x k
+                distance_arr = np.sum(euclidean_dist, axis=2)
 
-            # now we need to find out to which cluster each data point belongs.
-            # Use a matrix of n x k where [i,j] = 1 if the ith data point belongs
-            # to cluster j.
-            min_location = np.zeros(distance_arr.shape)
-            min_location[range(distance_arr.shape[0]), np.argmin(distance_arr, axis=1)] = 1
+                # now we need to find out to which cluster each data point belongs.
+                # Use a matrix of n x k where [i,j] = 1 if the ith data point belongs
+                # to cluster j.
+                min_location = np.zeros(distance_arr.shape)
+                min_location[range(distance_arr.shape[0]), np.argmin(distance_arr, axis=1)] = 1
 
-            # calculate J
-            j_val = np.sum(distance_arr[min_location == True])
-            j_values.append(j_val)
+                # calculate J
+                j_val = np.sum(distance_arr[min_location == True])
+                j_values.append(j_val)
 
-            # calculates the new centroids
-            new_centroids = np.empty(centroids.shape)
-            for col in range(0, self.k):
-                new_centroids[col] = np.mean(self.data[min_location[:, col] == True, :], axis=0)
+                # calculates the new centroids
+                new_centroids = np.empty(centroids.shape)
+                for col in range(0, self.k):
+                    if self.data[min_location[:, col] == True,:].shape[0] == 0:
+                        new_centroids[col] = centroids[col]
+                    else:
+                        new_centroids[col] = np.mean(self.data[min_location[:, col] == True, :], axis=0)
 
-            # compare centroids to see if they are equal or not
-            if self._compare_centroids(centroids, new_centroids):
-                # it has resulted in the same centroids.
-                stabilized = True
+                # compare centroids to see if they are equal or not
+                if self._compare_centroids(centroids, new_centroids):
+                    # it has resulted in the same centroids.
+                    stabilized = True
+                else:
+                    centroids = new_centroids
+            except:
+                print ('exception!')
+                continue
             else:
-                centroids = new_centroids
-
+                iterations += 1
 
         print ('Required ', iterations, ' iterations to stabilize.')
         return iterations, j_values, centroids, min_location
@@ -74,4 +85,6 @@ class KMeansBase:
             else:
                 return False
 
-
+    def initCost(self):
+        t = timeit.Timer(lambda: self._initial_centroids())
+        return t.timeit(number=10)
